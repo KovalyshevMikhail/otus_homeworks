@@ -1,3 +1,13 @@
+/// Socket of smart home
+///
+/// Example
+/// ```
+/// // create socket with default parameters
+/// let socket1 = Socket::new();
+///
+/// // create socket with custom parameters
+/// let socket2 = Socket::from("S01", "description of SW01", 1000.0);
+/// ```
 struct Socket {
     name: String,
     description: String,
@@ -7,6 +17,15 @@ struct Socket {
 }
 
 impl Socket {
+    /// Function create Socket with default parameters
+    /// name - default
+    /// description - default description
+    /// power_max - 100.0
+    ///
+    /// Example
+    /// ```
+    /// let socket1 = Socket::new();
+    /// ```
     fn new() -> Self {
         Socket {
             name: String::from("default"),
@@ -17,6 +36,12 @@ impl Socket {
         }
     }
 
+    /// Function create Socket with custom parameters
+    ///
+    /// Example:
+    /// ```
+    /// let socket2 = Socket::from("S01", "description of SW01", 1000.0);
+    /// ```
     fn from(name: &str, description: &str, power_max: f32) -> Self {
         Socket {
             name: String::from(name),
@@ -27,14 +52,35 @@ impl Socket {
         }
     }
 
+    /// Method enable power of Socket
+    ///
+    /// Example:
+    /// ```
+    /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
+    /// socket.power_on();
+    /// ```
     fn power_on(&mut self) {
         self.enabled = true;
     }
 
+    /// Method disable power of Socket
+    ///
+    /// Example:
+    /// ```
+    /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
+    /// socket.power_off();
+    /// ```
     fn _power_off(&mut self) {
         self.enabled = false;
     }
 
+    /// Method generate info about Socket
+    ///
+    /// Example:
+    /// ```
+    /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
+    /// println!("{}", socket.info());
+    /// ```
     fn info(&self) -> String {
         format!(
             "[SOCKET] {} [power is on={}]\n{}\nParameters: [\n\tMax power = {}\n\tPower consumption = {}\n]",
@@ -43,6 +89,18 @@ impl Socket {
     }
 }
 
+/// Termometer is a device of smart home
+///
+/// Termometer contains temperature from sensor
+///
+/// Example:
+/// ```
+/// // create termometer with default parameters
+/// let socket1 = Termometer::new();
+///
+/// // create termometer with custom parameters
+/// let socket2 = Termometer::from("T01", "description of T01");
+/// ```
 struct Termometer {
     name: String,
     description: String,
@@ -50,6 +108,14 @@ struct Termometer {
 }
 
 impl Termometer {
+    /// Function create new Termometer with default parameters:
+    /// name - default
+    /// description - default description
+    ///
+    /// Example:
+    /// ```
+    /// let term = Termometer::new();
+    /// ```
     fn new() -> Self {
         Termometer {
             name: String::from("default_name"),
@@ -58,6 +124,12 @@ impl Termometer {
         }
     }
 
+    /// Function create new Termometer with custom parameters
+    ///
+    /// Example:
+    /// ```
+    /// let term = Termometer::from("T01", "Description of T01");
+    /// ```
     fn from(name: &str, description: &str) -> Self {
         Termometer {
             name: String::from(name),
@@ -66,6 +138,13 @@ impl Termometer {
         }
     }
 
+    /// Method generate info about Termometer
+    ///
+    /// Example:
+    /// ```
+    /// let mut term = Termometer::from("T01", "Description of T01");
+    /// println!("{}", term.info());
+    /// ```
     fn info(&self) -> String {
         format!(
             "[TERMOMETER] {}\n{}\nParameters: [\n\tCurrent temperature = {}\n]",
