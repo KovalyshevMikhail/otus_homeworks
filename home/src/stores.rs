@@ -6,43 +6,54 @@ pub const HOME_NAME: &str = "HOME";
 
 /// Structure to store Device
 ///
-/// Contains only property devices, which store <{name}, {Device}>
+/// Contains only property devices, which store <{Device}>
 pub struct StoreDevices {
     devices: Vec<Box<dyn Device>>,
 }
 
+impl Default for StoreDevices {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StoreDevices {
+    /// Method create new Store
     pub fn new() -> StoreDevices {
         StoreDevices { devices: vec![] }
     }
 
-    pub fn contains(&self, device: &Box<dyn Device>) -> bool {
-        match self
-            .devices
+    /// Method check contains device in the store
+    pub fn contains(&self, device: &dyn Device) -> bool {
+        self.devices
             .iter()
-            .find(|d| d.name() == device.name() && d.info() == device.info())
-        {
-            Some(_) => true,
-            None => false,
-        }
+            .any(|d| d.name() == device.name() && d.info() == device.info())
     }
 
+    /// Method add device to the store
     pub fn add_device(&mut self, device: Box<dyn Device>) {
         self.devices.push(device)
     }
 
+    /// Method return Iter to the all devices
     pub fn iter(&self) -> Iter<Box<dyn Device>> {
-        let tmp = self.devices.iter();
-
-        tmp
+        self.devices.iter()
     }
 }
 
+/// Struct of store schema of the Home
 pub struct StoreDeviceLinks {
     links: HashMap<String, Vec<String>>,
 }
 
+impl Default for StoreDeviceLinks {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StoreDeviceLinks {
+    /// Method create new store
     pub fn new() -> Self {
         let mut links = HashMap::new();
         links.insert(String::from(HOME_NAME), Vec::<String>::new());
@@ -50,10 +61,15 @@ impl StoreDeviceLinks {
         StoreDeviceLinks { links }
     }
 
+    /// Method check contains room in keys
     pub fn contains_room(&self, room_name: &str) -> bool {
         self.links.contains_key(&String::from(room_name))
     }
 
+    /// Method add room to store
+    ///
+    /// If room is unique - its Ok
+    /// If not - panic
     pub fn add_room(&mut self, room_name: &str) {
         match self.links.get_mut(&String::from(HOME_NAME)) {
             Some(home) => home.push(String::from(room_name)),
@@ -62,6 +78,7 @@ impl StoreDeviceLinks {
         self.links.insert(String::from(room_name), vec![]);
     }
 
+    /// Method check contains device in the room
     pub fn contains_device(&self, room_name: &str, device_name: &str) -> bool {
         let contains_in_room = match self.links.get(&String::from(room_name)) {
             None => false,
@@ -75,6 +92,9 @@ impl StoreDeviceLinks {
         contains_in_list && contains_in_room
     }
 
+    /// Method add device to the room
+    /// If room contains - OK
+    /// If not - panic
     pub fn add_device(&mut self, room_name: &str, device_name: &str) {
         match self.links.get_mut(&String::from(room_name)) {
             None => {
@@ -85,6 +105,8 @@ impl StoreDeviceLinks {
         self.links.insert(String::from(device_name), vec![]);
     }
 
+    /// Method check contains connected devices
+    /// TODO: rewrite mechanism
     pub fn contains_connected_device(&self, device_to: &str, device_from: &str) -> bool {
         match self.links.get(&String::from(device_to)) {
             None => false,
@@ -92,6 +114,8 @@ impl StoreDeviceLinks {
         }
     }
 
+    /// Method connect devices
+    /// TODO: rewrite mechanism
     pub fn connect_device(&mut self, device_name_to: &str, device_name_from: &str) {
         match self.links.get_mut(&String::from(device_name_to)) {
             None => {
@@ -110,6 +134,7 @@ impl StoreDeviceLinks {
         }
     }
 
+    /// Method return connections of entity (Room or Device)
     pub fn entities(&self, name: &str) -> Iter<String> {
         match self.links.get(name) {
             None => [].iter(),

@@ -2,8 +2,16 @@ use std::collections::HashMap;
 
 use crate::devices::Device;
 
+//TODO: using for dispatch handles
+
 pub struct Dispatcher {
     devices: HashMap<String, Box<dyn Device>>,
+}
+
+impl Default for Dispatcher {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Dispatcher {

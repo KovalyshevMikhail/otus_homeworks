@@ -13,8 +13,10 @@ pub trait Device {
     fn info(&self) -> String;
 }
 
+/// Marker trait to declare devices which are connectable to another
 pub trait Connectable {}
 
+/// Trait to declare devices which are can return values
 pub trait Measurable {
     fn data(&self) -> &str;
 }

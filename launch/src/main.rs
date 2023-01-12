@@ -15,10 +15,10 @@ fn main() {
     let term2 = Thermometer::from("T01", "Description of T01");
     println!("\n{}", term2.info());
 
-    let mut home = Home::new("home".to_string());
+    let mut home = Home::new("home");
     let room_name_01 = "R01";
-    let room_01 = Room::new(room_name_01.to_string());
-    home.add_room(room_01);
+    let room_01 = Room::new(room_name_01);
+    home.add_room(room_01).unwrap();
 
     let device_01 = Socket::new();
     home.add_device(room_name_01, Box::new(device_01)).unwrap();

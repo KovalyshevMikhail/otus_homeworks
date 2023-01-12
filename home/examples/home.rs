@@ -3,11 +3,11 @@ use home::devices::thermometer::Thermometer;
 use home::places::{Home, Room};
 
 fn main() {
-    let mut home = Home::new("home".to_string());
+    let mut home = Home::new("home");
 
     let room_name_01 = "R01";
-    let room01 = Room::new(room_name_01.to_string());
-    home.add_room(room01);
+    let room01 = Room::new(room_name_01);
+    home.add_room(room01).unwrap();
 
     let s01_name = "S01";
     let s01 = Socket::from(s01_name, "Description S01", 1500.0);

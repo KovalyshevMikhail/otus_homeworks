@@ -1,16 +1,18 @@
-use crate::devices::{Connectable, Device};
 use super::Measurable;
+use crate::devices::{Connectable, Device};
 
-/// Termometer is a device of smart home
+/// Thermometer is a device of smart home
 ///
-/// Termometer contains temperature from sensor
+/// Thermometer contains temperature from sensor
 ///
 /// Example:
 /// ```
-/// // create termometer with default parameters
+/// use crate::home::devices::thermometer::Thermometer;
+///
+/// // create thermometer with default parameters
 /// let socket1 = Thermometer::new();
 ///
-/// // create termometer with custom parameters
+/// // create thermometer with custom parameters
 /// let socket2 = Thermometer::from("T01", "description of T01");
 /// ```
 pub struct Thermometer {
@@ -19,14 +21,22 @@ pub struct Thermometer {
     current_temperature: f32,
 }
 
+impl Default for Thermometer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Thermometer {
-    /// Function create new Termometer with default parameters:
+    /// Function create new Thermometer with default parameters:
     /// name - default
     /// description - default description
     ///
     /// Example:
     /// ```
-    /// let term = Termometer::new();
+    /// use crate::home::devices::thermometer::Thermometer;
+    ///
+    /// let term = Thermometer::new();
     /// ```
     pub fn new() -> Self {
         Thermometer {
@@ -36,11 +46,13 @@ impl Thermometer {
         }
     }
 
-    /// Function create new Termometer with custom parameters
+    /// Function create new Thermometer with custom parameters
     ///
     /// Example:
     /// ```
-    /// let term = Termometer::from("T01", "Description of T01");
+    /// use crate::home::devices::thermometer::Thermometer;
+    ///
+    /// let term = Thermometer::from("T01", "Description of T01");
     /// ```
     pub fn from(name: &str, description: &str) -> Self {
         Thermometer {
@@ -50,16 +62,18 @@ impl Thermometer {
         }
     }
 
-    /// Method generate info about Termometer
+    /// Method generate info about Thermometer
     ///
     /// Example:
     /// ```
-    /// let mut term = Termometer::from("T01", "Description of T01");
+    /// use crate::home::devices::thermometer::Thermometer;
+    ///
+    /// let mut term = Thermometer::from("T01", "Description of T01");
     /// println!("{}", term.info());
     /// ```
     pub fn info(&self) -> String {
         format!(
-            "[TERMOMETER] {}\n{}\nParameters: [\n\tCurrent temperature = {}\n]",
+            "[THERMOMETER] {}\n{}\nParameters: [\n\tCurrent temperature = {}\n]",
             self.name, self.description, self.current_temperature
         )
     }
@@ -75,10 +89,7 @@ impl Device for Thermometer {
     }
 
     fn info(&self) -> String {
-        format!(
-            "[THERMOMETER] {} \n NO PARAMETERS",
-            self.name
-        )
+        format!("[THERMOMETER] {} \n NO PARAMETERS", self.name)
     }
 }
 

@@ -1,9 +1,11 @@
-use super::{Connectable, Device};
+use super::Device;
 
 /// Socket of smart home
 ///
 /// Example
 /// ```
+/// use crate::home::devices::socket::Socket;
+///
 /// // create socket with default parameters
 /// let socket1 = Socket::new();
 ///
@@ -18,6 +20,12 @@ pub struct Socket {
     enabled: bool,
 }
 
+impl Default for Socket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Socket {
     /// Function create Socket with default parameters
     /// name - default
@@ -26,6 +34,8 @@ impl Socket {
     ///
     /// Example
     /// ```
+    /// use crate::home::devices::socket::Socket;
+    ///
     /// let socket1 = Socket::new();
     /// ```
     pub fn new() -> Self {
@@ -42,13 +52,15 @@ impl Socket {
     ///
     /// Example:
     /// ```
+    /// use crate::home::devices::socket::Socket;
+    ///
     /// let socket2 = Socket::from("S01", "description of SW01", 1000.0);
     /// ```
     pub fn from(name: &str, description: &str, power_max: f32) -> Self {
         Socket {
             name: String::from(name),
             description: String::from(description),
-            power_max: power_max,
+            power_max,
             power_consumption: 0.0,
             enabled: false,
         }
@@ -58,6 +70,8 @@ impl Socket {
     ///
     /// Example:
     /// ```
+    /// use crate::home::devices::socket::Socket;
+    ///
     /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
     /// socket.power_on();
     /// ```
@@ -69,8 +83,10 @@ impl Socket {
     ///
     /// Example:
     /// ```
+    /// use crate::home::devices::socket::Socket;
+    ///
     /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
-    /// socket.power_off();
+    /// socket._power_off();
     /// ```
     pub fn _power_off(&mut self) {
         self.enabled = false;
@@ -90,6 +106,9 @@ impl Device for Socket {
     ///
     /// Example:
     /// ```
+    /// use crate::home::devices::Device;
+    /// use crate::home::devices::socket::Socket;
+    ///
     /// let mut socket = Socket::from("S01", "description of SW01", 1000.0);
     /// println!("{}", socket.info());
     /// ```
@@ -100,5 +119,3 @@ impl Device for Socket {
         )
     }
 }
-
-impl Connectable for Socket {}
