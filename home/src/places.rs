@@ -71,6 +71,36 @@ impl Home {
         }
     }
 
+    /// Method remove room from home
+    ///
+    /// Example:
+    /// ```
+    /// use crate::home::places::{Home, Room};
+    ///
+    /// let mut home = Home::new("MY best Home");
+    /// let room_name = "Kitchen";
+    /// let room = Room::new(room_name);
+    ///
+    /// home.add_room(room).unwrap();
+    /// let result = home.remove_room(room_name);
+    ///
+    /// # assert!(!home.rooms().contains(&String::from(room_name))); // normal remove is OK
+    /// # assert!(home.remove_room(room_name).is_err()) // second remove is KO
+    /// ```
+    pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
+        match self.rooms.iter().position(|room| room.name.as_str() == room_name) {
+            Some(index) => {
+                self.manager_devices.remove_room(room_name)?;
+                self.rooms.remove(index);
+                Ok(())
+            },
+            None => {
+                let message = format!("Room with name [{}] not found", room_name);
+                Err(message)
+            }
+        }
+    }
+
     /// Method return struct Room by specific name
     ///
     /// Example:
@@ -139,6 +169,34 @@ impl Home {
         self.manager_devices.add_device(room_name, device)
     }
 
+    /// Method remove device from home
+    ///
+    /// Example:
+    /// ```
+    /// use crate::home::places::{Home, Room};
+    /// use crate::home::devices::socket::Socket;
+    ///
+    /// let mut home = Home::new("MY best Home");
+    /// let room_name = "Kitchen";
+    /// let room = Room::new(room_name);
+    /// home.add_room(room).unwrap();
+    ///
+    /// home.add_device(room_name, Box::new(Socket::from("S01", "S01 Description", 1000.0))).unwrap();
+    /// home.add_device(room_name, Box::new(Socket::from("S02", "S02 Description", 1000.0))).unwrap();
+    /// home.add_device(room_name, Box::new(Socket::from("S03", "S03 Description", 1000.0))).unwrap();
+    /// home.add_device(room_name, Box::new(Socket::from("S04", "S04 Description", 1000.0))).unwrap();
+    ///
+    /// let result = home.remove_device("S03");
+    /// let devices = home.devices(room_name);
+    ///
+    /// # assert!(result.is_ok());
+    /// # assert!(!devices.contains(&String::from("S03")));
+    /// # assert_eq!(devices.len(), 3);
+    /// ```
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        self.manager_devices.remove_device(device_name)
+    }
+
     /// Method connects one device to another
     ///
     /// Method is not tested
@@ -205,10 +263,12 @@ impl Home {
     /// # assert!(home.devices("Unknown room").is_empty()); // get list of unknown room is KO
     /// ```
     pub fn devices(&self, room_name: &str) -> Vec<String> {
-        self.manager_devices
+        let result: Vec<String> = self.manager_devices
             .get_devices(room_name)
             .cloned()
-            .collect()
+            .collect();
+
+        result
     }
 
     /// Method print report about all devices of the home

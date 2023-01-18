@@ -35,6 +35,19 @@ impl StoreDevices {
         self.devices.push(device)
     }
 
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        match self.devices.iter().position(|device| device.name() == device_name) {
+            Some(index) => {
+                self.devices.remove(index);
+                Ok(())
+            },
+            None => {
+                let message = format!("Not found device with name [{}] in Devices Store", device_name);
+                Err(message)
+            }
+        }
+    }
+
     /// Method return Iter to the all devices
     pub fn iter(&self) -> Iter<Box<dyn Device>> {
         self.devices.iter()
@@ -78,8 +91,37 @@ impl StoreDeviceLinks {
         self.links.insert(String::from(room_name), vec![]);
     }
 
+    /// Method remove room from store
+    ///
+    /// If room exists - its OK
+    /// If not - panic
+    pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
+        match self.links.get_mut(&String::from(HOME_NAME)) {
+            Some(home) => {
+                match home.iter().position(|room| room.as_str() == room_name) {
+                    Some(index) => {
+                        home.remove(index);
+                    },
+                    None => {
+                        let message = format!("Room with name [{}] not found in Schemas store", room_name);
+                        return Err(message)
+                    }
+                }
+            },
+            None => panic!("Create StoreDeviceLinks without root HOME"),
+        }
+
+        self.links.remove(room_name);
+
+        Ok(())
+    }
+
+    pub fn contains_device(&self, device_name: &str) -> bool {
+        self.links.contains_key(&String::from(device_name))
+    }
+
     /// Method check contains device in the room
-    pub fn contains_device(&self, room_name: &str, device_name: &str) -> bool {
+    pub fn contains_device_in_room(&self, room_name: &str, device_name: &str) -> bool {
         let contains_in_room = match self.links.get(&String::from(room_name)) {
             None => false,
             Some(room_devices) => room_devices.contains(&String::from(device_name)),
@@ -103,6 +145,28 @@ impl StoreDeviceLinks {
             Some(room_devices) => room_devices.push(String::from(device_name)),
         }
         self.links.insert(String::from(device_name), vec![]);
+    }
+
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        match self.links.remove(device_name) {
+            Some(_) => {},
+            None => {
+                let message = format!("No found device name [{}] at schema", device_name);
+                return Err(message);
+            }
+        }
+
+        for (_, entities) in self.links.iter_mut() {
+            match entities.iter().position(|name| name == device_name) {
+                None => {},
+                Some(index) => {
+                    entities.remove(index);
+                    return Ok(())
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Method check contains connected devices

@@ -22,6 +22,12 @@ fn main() {
 
     let device_01 = Socket::new();
     home.add_device(room_name_01, Box::new(device_01)).unwrap();
+    home.add_device(room_name_01, Box::new(term1)).unwrap();
+    home.add_device(room_name_01, Box::new(term2)).unwrap();
 
-    home.print_report();
+    home.print_schema();
+
+    home.remove_device("T01").unwrap();
+
+    home.print_schema();
 }

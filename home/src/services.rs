@@ -60,6 +60,27 @@ impl ServiceDeviceManagement {
         self.service_schema.add_room(room.name())
     }
 
+    /// Method remove room from schema
+    ///
+    /// Example:
+    /// ```
+    /// use crate::home::places::Room;
+    /// use crate::home::services::ServiceDeviceManagement;
+    ///
+    /// let room_name = "My room";
+    /// let room = Room::new(room_name);
+    /// let mut service = ServiceDeviceManagement::new();
+    /// let result_add: Result<(), String> = service.add_room(&room);
+    /// let result_remove: Result<(), String> = service.remove_room(room_name);
+    ///
+    /// # assert!(result_add.is_ok()); // normal add is OK
+    /// # assert!(result_remove.is_ok()); // normal remove is OK
+    /// # assert!(service.remove_room(room_name).is_err()); // remove room, that not contains, is KO
+    /// ```
+    pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
+        self.service_schema.remove_room(room_name)
+    }
+
     /// Method add device to specific room to services
     ///
     /// Example:
@@ -84,6 +105,11 @@ impl ServiceDeviceManagement {
         self.service_schema
             .add_device(room_name, device_name.as_str())?;
         Ok(())
+    }
+
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        self.service_schema.remove_device(device_name)?;
+        self.service_devices.remove_device(device_name)
     }
 
     /// Method connect devices
@@ -119,7 +145,7 @@ impl ServiceDeviceManagement {
     /// let device = Socket::from(device_name, "Description", 1000.0);
     /// service.add_device(room.name(), Box::new(device)).unwrap();
     ///
-    /// let device_opt: Option<&Box<dyn Device>> = service.get_device(device_name);
+    /// let device_opt: Option<&dyn Device> = service.get_device(device_name);
     ///
     /// # assert!(device_opt.is_some()); // normal get device return some is OK
     /// # assert_eq!(device_opt.unwrap().name(), device_name); // normal get device is OK
@@ -233,6 +259,10 @@ impl ServiceDevices {
         }
     }
 
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        self.store_devices.remove_device(device_name)
+    }
+
     /// Method return device by its name
     ///
     /// If device name founds - return Some
@@ -287,6 +317,16 @@ impl ServiceSchemaDevices {
         }
     }
 
+    pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
+        if !self.store_schema.contains_room(room_name) {
+            let message = format!("Room [{}] not contains in home", room_name);
+            Err(message)
+        } else {
+            self.store_schema.remove_room(room_name)?;
+            Ok(())
+        }
+    }
+
     /// Method add device to the room
     ///
     /// If room and device is unique - return Ok
@@ -296,7 +336,7 @@ impl ServiceSchemaDevices {
             let message = format!("Home not contains room[{}]", room_name);
             return Err(message);
         }
-        if self.store_schema.contains_device(room_name, device_name) {
+        if self.store_schema.contains_device_in_room(room_name, device_name) {
             let message = format!(
                 "Room[{}] already contains device[{}]",
                 room_name, device_name
@@ -309,6 +349,10 @@ impl ServiceSchemaDevices {
         Ok(())
     }
 
+    pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
+        self.store_schema.remove_device(device_name)
+    }
+
     /// Method connect one device to another
     /// TODO: rewrite mechanism
     pub fn connect_device(
@@ -319,7 +363,7 @@ impl ServiceSchemaDevices {
     ) -> Result<(), String> {
         if !self
             .store_schema
-            .contains_device(room_name, device_connected)
+            .contains_device_in_room(room_name, device_connected)
         {
             let message = format!(
                 "Room[{}] not contains device[{}]",
@@ -329,7 +373,7 @@ impl ServiceSchemaDevices {
         }
         if !self
             .store_schema
-            .contains_device(room_name, device_connects_to)
+            .contains_device_in_room(room_name, device_connects_to)
         {
             let message = format!(
                 "Room[{}] not contains device[{}]",

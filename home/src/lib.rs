@@ -139,4 +139,41 @@ mod tests {
             None => panic!("The device contains in the home"),
         }
     }
+
+    #[test]
+    fn remove_room_work() {
+        let mut home = Home::new("home");
+
+        home.add_room(Room::new("R01")).unwrap();
+        home.add_room(Room::new("R02")).unwrap();
+        home.add_room(Room::new("R03")).unwrap();
+        let rooms_before = home.rooms();
+
+        home.remove_room("R02").unwrap();
+        let rooms_after = home.rooms();
+
+        assert_ne!(rooms_before.len(), rooms_after.len());
+        assert!(rooms_before.contains(&String::from("R02")));
+        assert!(!rooms_after.contains(&String::from("R02")));
+    }
+
+    #[test]
+    fn remove_device_work() {
+        let mut home = Home::new("home");
+
+        let room_name = "R01";
+        home.add_room(Room::new(room_name)).unwrap();
+        home.add_device(room_name, Box::new(Socket::from("S01", "S01 description", 1000.0))).unwrap();
+        home.add_device(room_name, Box::new(Socket::from("S02", "S02 description", 1000.0))).unwrap();
+        home.add_device(room_name, Box::new(Socket::from("S03", "S03 description", 1000.0))).unwrap();
+        home.add_device(room_name, Box::new(Socket::from("S04", "S04 description", 1000.0))).unwrap();
+
+        let remove_device_name = "S03";
+        let result = home.remove_device(remove_device_name);
+        let devices = home.devices(room_name);
+
+        assert!(result.is_ok());
+        assert_eq!(devices.len(), 3);
+        assert!(!devices.contains(&String::from(remove_device_name)))
+    }
 }
