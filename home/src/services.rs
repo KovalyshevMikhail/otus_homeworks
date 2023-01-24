@@ -16,8 +16,7 @@ pub struct ServiceDevices {
 
 impl ServiceDevices {
     /// Method create new service
-    pub fn new() -> ServiceDevices {
-        let store_devices = StoreDevices::new();
+    pub fn new(store_devices: StoreDevices) -> ServiceDevices {
         ServiceDevices { store_devices }
     }
 
@@ -75,8 +74,7 @@ pub struct ServiceSchemaDevices {
 
 impl ServiceSchemaDevices {
     /// Method create new service
-    pub fn new() -> Self {
-        let store_schema = StoreDeviceLinks::new();
+    pub fn new(store_schema: StoreDeviceLinks) -> Self {
         ServiceSchemaDevices { store_schema }
     }
 

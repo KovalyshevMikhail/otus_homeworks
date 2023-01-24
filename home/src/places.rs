@@ -1,5 +1,6 @@
 use crate::devices::Device;
 use crate::services::{ServiceDevices, ServiceSchemaDevices};
+use crate::stores::{StoreDevices, StoreDeviceLinks};
 
 /// Home structure
 ///
@@ -24,9 +25,36 @@ impl Home {
     /// let home = Home::new("MY best Home");
     /// ```
     pub fn new(name: &str) -> Self {
-        let service_devices = ServiceDevices::new();
-        let service_schema = ServiceSchemaDevices::new();
+        let store_devices = StoreDevices::new();
+        let store_schema = StoreDeviceLinks::new();
 
+        let service_devices = ServiceDevices::new(store_devices);
+        let service_schema = ServiceSchemaDevices::new(store_schema);
+        Self {
+            name: String::from(name),
+            rooms: vec![],
+            service_devices,
+            service_schema,
+        }
+    }
+
+    /// Method create new example of Home with specific name and created all services
+    ///
+    /// Example:
+    /// ```
+    /// use crate::home::places::Home;
+    /// use crate::home::services::{ServiceDevices, ServiceSchemaDevices};
+    /// use crate::home::stores::{StoreDevices, StoreDeviceLinks};
+    ///
+    /// let store_devices = StoreDevices::new();
+    /// let store_schema = StoreDeviceLinks::new();
+    ///
+    /// let service_devices = ServiceDevices::new(store_devices);
+    /// let service_schema = ServiceSchemaDevices::new(store_schema);
+    ///
+    /// let home = Home::from("MY best Home", service_devices, service_schema);
+    /// ```
+    pub fn from(name: &str, service_devices: ServiceDevices, service_schema: ServiceSchemaDevices) -> Self {
         Self {
             name: String::from(name),
             rooms: vec![],
