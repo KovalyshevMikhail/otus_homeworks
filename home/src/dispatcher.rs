@@ -1,11 +1,15 @@
 use std::collections::HashMap;
-
-use crate::devices::Device;
+use std::net::TcpListener;
 
 //TODO: using for dispatch handles
 
+pub struct DispatchInfo {
+    name: String,
+}
+
 pub struct Dispatcher {
-    devices: HashMap<String, Box<dyn Device>>,
+    listener: TcpListener,
+    entities: HashMap<usize, DispatchInfo>
 }
 
 impl Default for Dispatcher {
@@ -16,12 +20,21 @@ impl Default for Dispatcher {
 
 impl Dispatcher {
     pub fn new() -> Self {
+        let listener = TcpListener::bind("127.0.0.1::10000").unwrap();
+
         Self {
-            devices: HashMap::new(),
+            entities: HashMap::new(),
+            listener
         }
     }
 
-    pub fn add_device(&mut self, device: Box<dyn Device>) {
-        self.devices.insert(device.name().to_string(), device);
+    pub fn start(&self) -> Result<(), String> {
+        for connection in self.listener.incoming() {
+            let connection = connection.unwrap();
+
+            println!("{:?}", connection);
+        }
+
+        Ok(())
     }
 }

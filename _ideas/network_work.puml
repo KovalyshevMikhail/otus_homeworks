@@ -1,0 +1,45 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber "<b>[00]"
+
+actor User as user
+
+participant Home as home
+database DeviceStore as ds
+database SchemaStore as ss
+participant Room as r01
+participant Socket as s01
+
+
+user -> home: create Home
+activate home
+
+user -> home: create Room
+home -> r01: create Room
+activate r01
+r01 -> r01: create
+home -> ss: Add Room
+
+=== create new Socket ==
+user -> s01: create new Device
+activate s01
+s01 -> s01: create
+s01 -> s01: set root port
+s01 -> home: i'm here, save me
+home -> ds: Add Socket
+home -> ss: Add Socket to home
+
+user -> home: Place Socket to Room
+home -> ss: Add Socket to Room
+
+=== set power Socket on/off ==
+user -> home: power on Socket
+home -> s01: power on
+s01 -> s01: enable power
+s01 -> home: power on is OK
+home -> user: power on Socket is OK
+
+
+deactivate home
+@enduml

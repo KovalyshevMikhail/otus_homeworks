@@ -1,5 +1,5 @@
 use crate::devices::Device;
-use crate::services::ServiceDeviceManagement;
+use crate::services::{ServiceDevices, ServiceSchemaDevices};
 
 /// Home structure
 ///
@@ -10,7 +10,8 @@ use crate::services::ServiceDeviceManagement;
 pub struct Home {
     name: String,
     rooms: Vec<Room>,
-    manager_devices: ServiceDeviceManagement,
+    service_devices: ServiceDevices,
+    service_schema: ServiceSchemaDevices,
 }
 
 impl Home {
@@ -23,12 +24,14 @@ impl Home {
     /// let home = Home::new("MY best Home");
     /// ```
     pub fn new(name: &str) -> Self {
-        let manager_devices = ServiceDeviceManagement::new();
+        let service_devices = ServiceDevices::new();
+        let service_schema = ServiceSchemaDevices::new();
 
         Self {
             name: String::from(name),
             rooms: vec![],
-            manager_devices,
+            service_devices,
+            service_schema,
         }
     }
 
@@ -62,13 +65,7 @@ impl Home {
     /// # assert!(home.add_room(Room::new("Kitchen")).is_err())
     /// ```
     pub fn add_room(&mut self, room: Room) -> Result<(), String> {
-        match self.manager_devices.add_room(&room) {
-            Ok(_) => {
-                self.rooms.push(room);
-                Ok(())
-            }
-            Err(error) => Err(error),
-        }
+        self.service_schema.add_room(room.name())
     }
 
     /// Method remove room from home
@@ -88,17 +85,7 @@ impl Home {
     /// # assert!(home.remove_room(room_name).is_err()) // second remove is KO
     /// ```
     pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
-        match self.rooms.iter().position(|room| room.name.as_str() == room_name) {
-            Some(index) => {
-                self.manager_devices.remove_room(room_name)?;
-                self.rooms.remove(index);
-                Ok(())
-            },
-            None => {
-                let message = format!("Room with name [{}] not found", room_name);
-                Err(message)
-            }
-        }
+        self.service_schema.remove_room(room_name)
     }
 
     /// Method return struct Room by specific name
@@ -166,7 +153,11 @@ impl Home {
     /// # assert!(home.add_device("Unknown room", Box::new(Socket::new())).is_err()) // add to the unknown room is KO
     /// ```
     pub fn add_device(&mut self, room_name: &str, device: Box<dyn Device>) -> Result<(), String> {
-        self.manager_devices.add_device(room_name, device)
+        let device_name = String::from(device.name());
+        self.service_devices.add_device(device)?;
+        self.service_schema
+            .add_device(room_name, device_name.as_str())?;
+        Ok(())
     }
 
     /// Method remove device from home
@@ -194,7 +185,8 @@ impl Home {
     /// # assert_eq!(devices.len(), 3);
     /// ```
     pub fn remove_device(&mut self, device_name: &str) -> Result<(), String> {
-        self.manager_devices.remove_device(device_name)
+        self.service_schema.remove_device(device_name)?;
+        self.service_devices.remove_device(device_name)
     }
 
     /// Method connects one device to another
@@ -206,8 +198,11 @@ impl Home {
         device_connects_to: &str,
         device_connected: &str,
     ) -> Result<(), String> {
-        self.manager_devices
+        self.service_schema
             .connect_device(room_name, device_connects_to, device_connected)
+            .unwrap();
+
+        Ok(())
     }
 
     /// Method find device by its name
@@ -235,7 +230,7 @@ impl Home {
     /// # assert!(home.device("Unknown device").is_none()); // find of unknown device is KO
     /// ```
     pub fn device(&self, device_name: &str) -> Option<&dyn Device> {
-        self.manager_devices.get_device(device_name)
+        self.service_devices.get_device(device_name)
     }
 
     /// Method return list of all devices names in the specific room
@@ -263,8 +258,9 @@ impl Home {
     /// # assert!(home.devices("Unknown room").is_empty()); // get list of unknown room is KO
     /// ```
     pub fn devices(&self, room_name: &str) -> Vec<String> {
-        let result: Vec<String> = self.manager_devices
-            .get_devices(room_name)
+        let result: Vec<String> = self
+            .service_schema
+            .room_devices(room_name)
             .cloned()
             .collect();
 
@@ -289,7 +285,8 @@ impl Home {
     /// home.print_report(); // prints information about only 1 device - Socket
     /// ```
     pub fn print_report(&self) {
-        self.manager_devices.print_report();
+        let report = self.service_devices.collect_data_for_report();
+        println!("Generated report about all devices:\n{}", report);
     }
 
     /// Method print schema connections of the home
@@ -310,7 +307,8 @@ impl Home {
     /// home.print_schema(); // prints room connected to the home and device connected to the home
     /// ```
     pub fn print_schema(&self) {
-        self.manager_devices.print_schema();
+        let report = self.service_schema.collect_schema();
+        println!("{}", report);
     }
 }
 
