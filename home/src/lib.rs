@@ -3,6 +3,7 @@ pub mod dispatcher;
 pub mod places;
 pub mod services;
 pub mod stores;
+pub mod network;
 
 #[cfg(test)]
 mod tests {
