@@ -171,7 +171,7 @@ mod tests {
 
         let remove_device_name = "S03";
         let result = home.remove_device(remove_device_name);
-        let devices = home.devices(room_name);
+        let devices = home.devices_in_room(room_name);
 
         assert!(result.is_ok());
         assert_eq!(devices.len(), 3);

@@ -4,12 +4,12 @@ use std::net::TcpListener;
 //TODO: using for dispatch handles
 
 pub struct DispatchInfo {
-    name: String,
+    _name: String,
 }
 
 pub struct Dispatcher {
     listener: TcpListener,
-    entities: HashMap<usize, DispatchInfo>
+    _entities: HashMap<usize, DispatchInfo>
 }
 
 impl Default for Dispatcher {
@@ -23,7 +23,7 @@ impl Dispatcher {
         let listener = TcpListener::bind("127.0.0.1::10000").unwrap();
 
         Self {
-            entities: HashMap::new(),
+            _entities: HashMap::new(),
             listener
         }
     }

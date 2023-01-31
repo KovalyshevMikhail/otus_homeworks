@@ -1,4 +1,7 @@
+use std::net::TcpListener;
+use std::thread;
 use crate::devices::Device;
+use crate::network::HOME_PORT;
 use crate::services::{ServiceDevices, ServiceSchemaDevices};
 use crate::stores::{StoreDevices, StoreDeviceLinks};
 
@@ -10,9 +13,9 @@ use crate::stores::{StoreDevices, StoreDeviceLinks};
 ///
 pub struct Home {
     name: String,
-    rooms: Vec<Room>,
     service_devices: ServiceDevices,
     service_schema: ServiceSchemaDevices,
+    tcp_listener: TcpListener
 }
 
 impl Home {
@@ -30,11 +33,16 @@ impl Home {
 
         let service_devices = ServiceDevices::new(store_devices);
         let service_schema = ServiceSchemaDevices::new(store_schema);
+
+        let mut address = String::from("127.0.0.1:");
+        address.push_str(HOME_PORT);
+        let tcp_listener = TcpListener::bind(address).unwrap();
+
         Self {
             name: String::from(name),
-            rooms: vec![],
             service_devices,
             service_schema,
+            tcp_listener
         }
     }
 
@@ -55,11 +63,15 @@ impl Home {
     /// let home = Home::from("MY best Home", service_devices, service_schema);
     /// ```
     pub fn from(name: &str, service_devices: ServiceDevices, service_schema: ServiceSchemaDevices) -> Self {
+        let mut address = String::from("127.0.0.1:");
+        address.push_str(HOME_PORT);
+        let tcp_listener = TcpListener::bind(address).unwrap();
+
         Self {
             name: String::from(name),
-            rooms: vec![],
             service_devices,
             service_schema,
+            tcp_listener
         }
     }
 
@@ -85,15 +97,14 @@ impl Home {
     /// use crate::home::places::{Home, Room};
     ///
     /// let mut home = Home::new("MY best Home");
-    /// let room = Room::new("Kitchen");
     ///
-    /// home.add_room(room).unwrap();
+    /// home.add_room("Kitchen").unwrap();
     ///
     /// # assert!(home.rooms().contains(&String::from("Kitchen")));
-    /// # assert!(home.add_room(Room::new("Kitchen")).is_err())
+    /// # assert!(home.add_room("Kitchen").is_err())
     /// ```
-    pub fn add_room(&mut self, room: Room) -> Result<(), String> {
-        self.service_schema.add_room(room.name())
+    pub fn add_room(&mut self, room: &str) -> Result<(), String> {
+        self.service_schema.add_room(room)
     }
 
     /// Method remove room from home
@@ -104,9 +115,8 @@ impl Home {
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
     ///
-    /// home.add_room(room).unwrap();
+    /// home.add_room("Kitchen").unwrap();
     /// let result = home.remove_room(room_name);
     ///
     /// # assert!(!home.rooms().contains(&String::from(room_name))); // normal remove is OK
@@ -120,14 +130,13 @@ impl Home {
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     ///
     /// let mut home = Home::new("MY best Home");
-    /// let room = Room::new("Kitchen");
     ///
-    /// home.add_room(room).unwrap();
+    /// home.add_room("Kitchen").unwrap();
     ///
-    /// let room_opt: Option<&Room> = home.room("Kitchen");
+    /// let room_opt: Option<String> = home.room("Kitchen");
     ///
     /// match room_opt {
     ///     Some(room_found) => println!("Found room: {}", room_found.name()),
@@ -136,20 +145,24 @@ impl Home {
     ///
     /// # assert_eq!(home.room("Kitchen").unwrap().name(), "Kitchen")
     /// ```
-    pub fn room(&self, name: &str) -> Option<&Room> {
-        self.rooms.iter().find(|&room| room.name.as_str() == name)
+    pub fn room(&self, name: &str) -> Option<String> {
+        self
+            .service_schema
+            .rooms()
+            .iter()
+            .find(|&room_name| room_name.as_str() == name)
+            .map(|room| room.clone())
     }
 
     /// Method return all rooms names
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     ///
     /// let mut home = Home::new("MY best Home");
-    /// let room = Room::new("Kitchen");
     ///
-    /// home.add_room(room).unwrap();
+    /// home.add_room("Kitchen").unwrap();
     ///
     /// for room in home.rooms() {
     ///     println!("{}", room);
@@ -158,20 +171,19 @@ impl Home {
     /// # assert!(!home.rooms().is_empty())
     /// ```
     pub fn rooms(&self) -> Vec<String> {
-        self.rooms.iter().map(|room| room.name.clone()).collect()
+        self.service_schema.rooms()
     }
 
     /// Method add new device to the room
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// let device = Socket::new();
     /// let result: Result<(), String> = home.add_device(room_name, Box::new(device));
@@ -192,13 +204,12 @@ impl Home {
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// home.add_device(room_name, Box::new(Socket::from("S01", "S01 Description", 1000.0))).unwrap();
     /// home.add_device(room_name, Box::new(Socket::from("S02", "S02 Description", 1000.0))).unwrap();
@@ -206,7 +217,7 @@ impl Home {
     /// home.add_device(room_name, Box::new(Socket::from("S04", "S04 Description", 1000.0))).unwrap();
     ///
     /// let result = home.remove_device("S03");
-    /// let devices = home.devices(room_name);
+    /// let devices = home.devices_in_room(room_name);
     ///
     /// # assert!(result.is_ok());
     /// # assert!(!devices.contains(&String::from("S03")));
@@ -237,13 +248,12 @@ impl Home {
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// let device = Socket::from("Socket", "Description of Socket", 1000.0);
     /// home.add_device(room_name, Box::new(device)).unwrap();
@@ -265,27 +275,26 @@ impl Home {
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// let device = Socket::from("Socket", "Description of Socket", 1000.0);
     /// home.add_device(room_name, Box::new(device)).unwrap();
     ///
-    /// let devices_names = home.devices(room_name);
+    /// let devices_names = home.devices_in_room(room_name);
     ///
     /// for device_name in devices_names {
     ///     println!("{}", device_name);
     /// }
     ///
-    /// # assert!(!home.devices(room_name).is_empty()); // get list of normal room is OK
-    /// # assert!(home.devices("Unknown room").is_empty()); // get list of unknown room is KO
+    /// # assert!(!home.devices_in_room(room_name).is_empty()); // get list of normal room is OK
+    /// # assert!(home.devices_in_room("Unknown room").is_empty()); // get list of unknown room is KO
     /// ```
-    pub fn devices(&self, room_name: &str) -> Vec<String> {
+    pub fn devices_in_room(&self, room_name: &str) -> Vec<String> {
         let result: Vec<String> = self
             .service_schema
             .room_devices(room_name)
@@ -295,17 +304,35 @@ impl Home {
         result
     }
 
+    pub fn devices(&self) -> Vec<String> {
+        self.service_devices.get_devices()
+    }
+
+    pub fn start_process(&self) {
+        let listener = &self.tcp_listener;
+
+        thread::scope(move |_| {
+            for stream in listener.incoming() {
+                let stream = stream.unwrap();
+
+                let _ = thread::spawn(move || {
+                    println!("Connection created! {:?}", stream);
+                });
+
+            }
+        })
+    }
+
     /// Method print report about all devices of the home
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// let device = Socket::from("Socket", "Description of Socket", 1000.0);
     /// home.add_device(room_name, Box::new(device)).unwrap();
@@ -321,13 +348,12 @@ impl Home {
     ///
     /// Example:
     /// ```
-    /// use crate::home::places::{Home, Room};
+    /// use crate::home::places::Home;
     /// use crate::home::devices::socket::Socket;
     ///
     /// let mut home = Home::new("MY best Home");
     /// let room_name = "Kitchen";
-    /// let room = Room::new(room_name);
-    /// home.add_room(room).unwrap();
+    /// home.add_room(room_name).unwrap();
     ///
     /// let device = Socket::from("Socket", "Description of Socket", 1000.0);
     /// home.add_device(room_name, Box::new(device)).unwrap();
@@ -337,44 +363,5 @@ impl Home {
     pub fn print_schema(&self) {
         let report = self.service_schema.collect_schema();
         println!("{}", report);
-    }
-}
-
-/// Struct to store Room information
-///
-/// Struct contains only name
-pub struct Room {
-    name: String,
-}
-
-impl Room {
-    /// Method create new room by specific name
-    ///
-    /// Example:
-    /// ```
-    /// use crate::home::places::Room;
-    ///
-    /// let room = Room::new("My best Room");
-    /// # assert_eq!(room.name(), "My best Room");
-    /// ```
-    pub fn new(name: &str) -> Self {
-        Self {
-            name: String::from(name),
-        }
-    }
-
-    /// Method return name of the room
-    ///
-    /// Example:
-    /// ```
-    /// use crate::home::places::Room;
-    ///
-    /// let room = Room::new("My best Room");
-    /// let room_name = room.name();
-    ///
-    /// # assert_eq!(room_name, "My best Room");
-    /// ```
-    pub fn name(&self) -> &str {
-        self.name.as_str()
     }
 }

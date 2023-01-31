@@ -1,7 +1,6 @@
 use crate::stores::HOME_NAME;
 use crate::{
     devices::Device,
-    places::Room,
     stores::{StoreDeviceLinks, StoreDevices},
 };
 use std::slice::Iter;
@@ -48,6 +47,10 @@ impl ServiceDevices {
             .iter()
             .find(|&device| device.name() == device_name)
             .map(|found| found.as_ref())
+    }
+
+    pub fn get_devices(&self) -> Vec<String> {
+        self.store_devices.iter().map(|device| device.name().to_string()).collect()
     }
 
     pub fn _remove_device(&self, _device: Box<dyn Device>) -> Result<(), String> {
@@ -100,6 +103,10 @@ impl ServiceSchemaDevices {
             self.store_schema.remove_room(room_name)?;
             Ok(())
         }
+    }
+
+    pub fn rooms(&self) -> Vec<String> {
+        self.store_schema.rooms()
     }
 
     /// Method add device to the room

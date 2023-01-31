@@ -24,7 +24,7 @@ fn main() {
     }
 
     println!("\nRoom {} contains devices:", room_name_01);
-    for (index, device) in home.devices(room_name_01).iter().enumerate() {
+    for (index, device) in home.devices_in_room(room_name_01).iter().enumerate() {
         println!("{}. {}", index, device);
     }
 

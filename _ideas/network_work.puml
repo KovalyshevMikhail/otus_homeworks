@@ -14,6 +14,7 @@ participant Socket as s01
 
 user -> home: create Home
 activate home
+home -> home: activate listener\non port <b>10000
 
 user -> home: create Room
 home -> r01: create Room

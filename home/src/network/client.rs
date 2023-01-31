@@ -1,7 +1,0 @@
-struct Client {
-
-}
-
-impl Client {
-
-}

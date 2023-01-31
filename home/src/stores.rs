@@ -116,6 +116,10 @@ impl StoreDeviceLinks {
         Ok(())
     }
 
+    pub fn rooms(&self) -> Vec<String> {
+        self.links.get(HOME_NAME).unwrap().clone()
+    }
+
     pub fn contains_device(&self, device_name: &str) -> bool {
         self.links.contains_key(&String::from(device_name))
     }

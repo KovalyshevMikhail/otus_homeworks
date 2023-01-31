@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 home = { path = "../home" }
+crossterm = "0.25"
+tui = "0.19"
+unicode-width = "0.1"
