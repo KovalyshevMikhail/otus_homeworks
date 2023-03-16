@@ -4,7 +4,9 @@ use crossterm::{
     cursor, event,
     execute, queue, Result, style::{self, Stylize}, terminal
 };
+use home::devices::Device;
 use home::devices::socket::Socket;
+use home::devices::thermometer::Thermometer;
 use home::places::Home;
 
 use crate::screen::Screen;
@@ -15,6 +17,7 @@ mod stages;
 
 struct Program {
     home: Home,
+    hardware: Vec<Box<dyn Device>>,
     screen: Screen,
     stage: Stages
 }
@@ -22,11 +25,13 @@ struct Program {
 impl Program {
     pub fn new() -> Self {
         let home = Home::new("SMART_HOME");
+        let hardware: Vec<Box<dyn Device>> = vec![];
         let screen = Screen::new();
         let stage = Stages::new();
 
         Self {
             home,
+            hardware,
             screen,
             stage
         }
@@ -38,7 +43,7 @@ impl Program {
         let mut alert = Option::<&str>::None;
 
         loop {
-            println!("---------------------------------------------------------------\n");
+            println!("\n===============================================================\n");
             match stage.current() {
                 State::MainMenu => {
                     self.home.print_schema();
@@ -120,9 +125,17 @@ impl Program {
                     let power = self.screen.input("Enter socket power (float number)").trim().parse::<f32>().expect("Expect only float number");
 
                     let device = Socket::from(name.trim(), description.trim(), power);
+                    self.hardware.push(Box::new(device));
+
+                    //self.smart_home.add_device(self.smart_home.rooms()[0].as_str(), Box::new(device)).unwrap();
+                }
+                Action::CreateDeviceSmartThermometer => {
+                    let name = self.screen.input("Enter device name");
+                    let description = self.screen.input("Enter device description");
+
+                    let device = Thermometer::from(name.trim(), description.trim());
                     self.home.add_device(self.home.rooms()[0].as_str(), Box::new(device)).unwrap();
                 }
-                Action::CreateDeviceSmartThermometer => {}
 
                 Action::Unsupported => {}
             }

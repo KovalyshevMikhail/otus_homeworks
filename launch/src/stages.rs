@@ -72,8 +72,8 @@ impl Stages {
 ==========================================================================================
 Controls:
   'q' - exit from program
-  'a' - add new device            'd' - remove device             's' - output home schema
-  'r' - add new room              'c' - remove room               'w' - output home report
+  'a' - add new device            'd' - remove device             's' - output smart_home schema
+  'r' - add new room              'c' - remove room               'w' - output smart_home report
 ==========================================================================================
 "#
             }
@@ -82,7 +82,7 @@ Controls:
 ==========================================================================================
 Controls:
   'q' - return to main menu
-  'c' - change title of home      's' - save title
+  'c' - change title of smart_home      's' - save title
 ==========================================================================================
 "#
             }

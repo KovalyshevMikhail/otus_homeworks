@@ -1,13 +1,13 @@
 use super::Measurable;
 use crate::devices::{Connectable, Device};
 
-/// Thermometer is a device of smart home
+/// Thermometer is a device of smart smart_home
 ///
 /// Thermometer contains temperature from sensor
 ///
 /// Example:
 /// ```
-/// use crate::home::devices::thermometer::Thermometer;
+/// use crate::smart_home::devices::thermometer::Thermometer;
 ///
 /// // create thermometer with default parameters
 /// let socket1 = Thermometer::new();

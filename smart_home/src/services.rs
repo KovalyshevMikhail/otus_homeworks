@@ -5,7 +5,7 @@ use crate::{
 };
 use std::slice::Iter;
 
-/// Struct to manage store of device of the home
+/// Struct to manage store of device of the smart_home
 ///
 /// Struct contains only store with all devices
 ///
@@ -24,7 +24,7 @@ impl ServiceDevices {
     /// If device is unique - good
     /// If not - return error
     ///
-    pub fn add_device(&mut self, device: Box<dyn Device>) -> Result<(), String> {
+    pub fn add_device(&mut self, device: Box<dyn Device + Send + Sync>) -> Result<(), String> {
         if self.store_devices.contains(device.as_ref()) {
             let message = format!("Devices store already contains device [{}]", device.name());
             Err(message)
@@ -42,15 +42,14 @@ impl ServiceDevices {
     ///
     /// If device name founds - return Some
     /// If not - return None
-    pub fn get_device(&self, device_name: &str) -> Option<&dyn Device> {
+    pub fn get_device(&self, device_name: &str) -> Option<&Box<dyn Device + Send + Sync>> {
         self.store_devices
-            .iter()
-            .find(|&device| device.name() == device_name)
-            .map(|found| found.as_ref())
+            .all_devices()
+            .find(|device| device.name() == device_name)
     }
 
     pub fn get_devices(&self) -> Vec<String> {
-        self.store_devices.iter().map(|device| device.name().to_string()).collect()
+        self.store_devices.all_devices().map(|device| device.name().to_string()).collect()
     }
 
     pub fn _remove_device(&self, _device: Box<dyn Device>) -> Result<(), String> {
@@ -62,7 +61,7 @@ impl ServiceDevices {
     /// Returns report about devices
     pub fn collect_data_for_report(&self) -> String {
         let mut info = String::from("");
-        for device in self.store_devices.iter() {
+        for device in self.store_devices.all_devices() {
             info.push_str(device.info().as_str());
             info.push_str("\n\n");
         }
@@ -87,7 +86,7 @@ impl ServiceSchemaDevices {
     /// If room already exists - return Error
     pub fn add_room(&mut self, room_name: &str) -> Result<(), String> {
         if self.store_schema.contains_room(room_name) {
-            let message = format!("Room [{}] already contains in home", room_name);
+            let message = format!("Room [{}] already contains in smart_home", room_name);
             Err(message)
         } else {
             self.store_schema.add_room(room_name);
@@ -97,7 +96,7 @@ impl ServiceSchemaDevices {
 
     pub fn remove_room(&mut self, room_name: &str) -> Result<(), String> {
         if !self.store_schema.contains_room(room_name) {
-            let message = format!("Room [{}] not contains in home", room_name);
+            let message = format!("Room [{}] not contains in smart_home", room_name);
             Err(message)
         } else {
             self.store_schema.remove_room(room_name)?;
@@ -177,7 +176,7 @@ impl ServiceSchemaDevices {
 
     /// Method return schema of the Home
     pub fn collect_schema(&self) -> String {
-        let mut result = String::from("Schema of home:\n");
+        let mut result = String::from("Schema of smart_home:\n");
 
         for room in self.store_schema.entities(HOME_NAME) {
             let room_devices = self.collect_devices_inner(room.as_str(), 1);
