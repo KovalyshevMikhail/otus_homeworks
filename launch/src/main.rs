@@ -1,33 +1,152 @@
-use home::devices::{socket::Socket, thermometer::Thermometer, Device};
-use home::places::{Home, Room};
+use std::io::stdout;
 
-fn main() {
-    let mut socket1 = Socket::new();
-    socket1.power_on();
-    println!("\n{}", socket1.info());
+use crossterm::{
+    cursor, event,
+    execute, queue, Result, style::{self, Stylize}, terminal
+};
+use home::devices::Device;
+use home::devices::socket::Socket;
+use home::devices::thermometer::Thermometer;
+use home::places::Home;
 
-    let socket2 = Socket::from("S01", "description of SW01", 1000.0);
-    println!("\n{}", socket2.info());
+use crate::screen::Screen;
+use crate::stages::{Action, Stages, State};
 
-    let term1 = Thermometer::new();
-    println!("\n{}", term1.info());
+pub mod screen;
+mod stages;
 
-    let term2 = Thermometer::from("T01", "Description of T01");
-    println!("\n{}", term2.info());
+struct Program {
+    home: Home,
+    hardware: Vec<Box<dyn Device>>,
+    screen: Screen,
+    stage: Stages
+}
 
-    let mut home = Home::new("home");
-    let room_name_01 = "R01";
-    let room_01 = Room::new(room_name_01);
-    home.add_room(room_01).unwrap();
+impl Program {
+    pub fn new() -> Self {
+        let home = Home::new("SMART_HOME");
+        let hardware: Vec<Box<dyn Device>> = vec![];
+        let screen = Screen::new();
+        let stage = Stages::new();
 
-    let device_01 = Socket::new();
-    home.add_device(room_name_01, Box::new(device_01)).unwrap();
-    home.add_device(room_name_01, Box::new(term1)).unwrap();
-    home.add_device(room_name_01, Box::new(term2)).unwrap();
+        Self {
+            home,
+            hardware,
+            screen,
+            stage
+        }
+    }
 
-    home.print_schema();
+    pub fn main_loop(&mut self) -> Result<()> {
+        self.screen.init();
+        let mut stage = Stages::new();
+        let mut alert = Option::<&str>::None;
 
-    home.remove_device("T01").unwrap();
+        loop {
+            println!("\n===============================================================\n");
+            match stage.current() {
+                State::MainMenu => {
+                    self.home.print_schema();
+                }
+                State::ChangeHomeTitle => {
+                    println!(r#"
+                        Home name before: {}
+                    "#, self.home.name());
+                }
+                State::CreateRoom => {
+                    println!("Home have rooms:");
+                    for room in self.home.rooms() {
+                        println!("{}", room);
+                    }
+                }
+                State::CreateDevice => {
+                    println!("Home have devices:");
+                    for device in self.home.devices() {
+                        println!("{}", device);
+                    }
+                }
+                State::Empty => {}
+            }
 
-    home.print_schema();
+
+            let menu = stage.menu();
+            self.screen.draw_menu(menu);
+
+            match alert {
+                None => {},
+                Some(msg) => {
+                    self.screen.alert(msg);
+                    alert = None;
+                }
+            }
+
+            let waited_command = self.screen.wait_command().unwrap();
+            let action = stage.action_of(waited_command.trim());
+
+            match action {
+                Action::MainMenuQuit => {
+                    break;
+                }
+                Action::MainMenuAddDevice => {
+                    stage = stage.with_state(State::CreateDevice);
+                }
+                Action::MainMenuRemoveDevice => {}
+                Action::MainMenuAddRoom => {
+                    stage = stage.with_state(State::CreateRoom);
+                }
+                Action::MainMenuRemoveRoom => {}
+                Action::MainMenuShowSchema => {}
+                Action::MainMenuShowReport => {}
+                Action::ChangeHomeTitleQuit => {}
+                Action::ChangeHomeTitleChangeTitle => {}
+                Action::ChangeHomeTitleSave => {}
+                Action::CreateRoomQuit => {
+                    stage = stage.with_state(State::MainMenu);
+                }
+                Action::CreateRoomEnterName => {
+                    let room_name = self.screen.input("Enter room name");
+                    match self.home.add_room(room_name.trim()) {
+                        Ok(_) => {
+                            println!("Room save!");
+                        }
+                        Err(err) => {
+                            println!("Error in adding room!\n{}", err);
+                        }
+                    }
+                }
+                Action::CreateRoomSave => {}
+
+                Action::CreateDeviceQuit => {
+                    stage = stage.with_state(State::MainMenu);
+                }
+                Action::CreateDeviceSmartSocket => {
+                    let name = self.screen.input("Enter device name");
+                    let description = self.screen.input("Enter device description");
+                    let power = self.screen.input("Enter socket power (float number)").trim().parse::<f32>().expect("Expect only float number");
+
+                    let device = Socket::from(name.trim(), description.trim(), power);
+                    self.hardware.push(Box::new(device));
+
+                    //self.smart_home.add_device(self.smart_home.rooms()[0].as_str(), Box::new(device)).unwrap();
+                }
+                Action::CreateDeviceSmartThermometer => {
+                    let name = self.screen.input("Enter device name");
+                    let description = self.screen.input("Enter device description");
+
+                    let device = Thermometer::from(name.trim(), description.trim());
+                    self.home.add_device(self.home.rooms()[0].as_str(), Box::new(device)).unwrap();
+                }
+
+                Action::Unsupported => {}
+            }
+        }
+
+        Ok(())
+    }
+}
+
+
+fn main() -> Result<()> {
+    let mut program = Program::new();
+    program.main_loop()
 }

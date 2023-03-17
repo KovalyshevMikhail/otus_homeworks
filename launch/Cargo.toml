@@ -6,4 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-home = { path = "../home" }
+home = { path = "../smart_home" }
+crossterm = "0.25"
+tui = "0.19"
+unicode-width = "0.1"

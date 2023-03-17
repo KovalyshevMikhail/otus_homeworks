@@ -1,4 +1,5 @@
 use std::{collections::HashMap, slice::Iter};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::devices::Device;
 
@@ -8,7 +9,7 @@ pub const HOME_NAME: &str = "HOME";
 ///
 /// Contains only property devices, which store <{Device}>
 pub struct StoreDevices {
-    devices: Vec<Box<dyn Device>>,
+    devices: Vec<Box<dyn Device + Send + Sync>>,
 }
 
 impl Default for StoreDevices {
@@ -31,7 +32,7 @@ impl StoreDevices {
     }
 
     /// Method add device to the store
-    pub fn add_device(&mut self, device: Box<dyn Device>) {
+    pub fn add_device(&mut self, device: Box<dyn Device + Send + Sync>) {
         self.devices.push(device)
     }
 
@@ -49,9 +50,10 @@ impl StoreDevices {
     }
 
     /// Method return Iter to the all devices
-    pub fn iter(&self) -> Iter<Box<dyn Device>> {
+    pub fn all_devices(&self) -> Iter<Box<dyn Device + Send + Sync>> {
         self.devices.iter()
     }
+
 }
 
 /// Struct of store schema of the Home
@@ -114,6 +116,10 @@ impl StoreDeviceLinks {
         self.links.remove(room_name);
 
         Ok(())
+    }
+
+    pub fn rooms(&self) -> Vec<String> {
+        self.links.get(HOME_NAME).unwrap().clone()
     }
 
     pub fn contains_device(&self, device_name: &str) -> bool {

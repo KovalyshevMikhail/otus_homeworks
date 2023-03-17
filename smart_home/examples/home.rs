@@ -3,7 +3,7 @@ use home::devices::thermometer::Thermometer;
 use home::places::{Home, Room};
 
 fn main() {
-    let mut home = Home::new("home");
+    let mut home = Home::new("smart_home");
 
     let room_name_01 = "R01";
     let room01 = Room::new(room_name_01);
@@ -24,7 +24,7 @@ fn main() {
     }
 
     println!("\nRoom {} contains devices:", room_name_01);
-    for (index, device) in home.devices(room_name_01).iter().enumerate() {
+    for (index, device) in home.devices_in_room(room_name_01).iter().enumerate() {
         println!("{}. {}", index, device);
     }
 

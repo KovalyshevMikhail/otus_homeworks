@@ -1,4 +1,4 @@
 [workspace]
 members = [
-    "home", "launch"
+    "smart_home", "launch"
 ]
