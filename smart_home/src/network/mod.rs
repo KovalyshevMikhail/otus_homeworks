@@ -3,13 +3,13 @@ use std::io::{Read, Write, Result, ErrorKind, Error};
 pub mod tcp_entity;
 pub mod tcp_command;
 
-pub const HOME_PORT: u32 = 55_000;
+pub const HOME_PORT: u32 = 53_000;
 
 trait TcpHomeConnect {
 
 }
 
-pub fn send_string<Data: AsRef<str>, Writer: Write>(data: Data, mut writer: Writer) -> Result<()> {
+pub fn send_string<Data: AsRef<str>, Writer: Write>(data: Data, writer: &mut Writer) -> Result<()> {
     let bytes = data.as_ref().as_bytes();
     let len = bytes.len() as u32;
     let len_bytes = len.to_be_bytes();

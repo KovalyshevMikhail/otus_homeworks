@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
@@ -29,7 +29,8 @@ pub struct Socket {
     power_consumption: f32,
     enabled: bool,
     tcp_node: Arc<TcpNode>,
-    commands: Arc<Mutex<Vec<TcpCommand>>>
+    pub tcp_clients: Arc<Mutex<HashMap<String, TcpConnection>>>,
+    pub commands: Arc<Mutex<VecDeque<TcpCommand>>>
 }
 
 impl Default for Socket {
@@ -51,8 +52,9 @@ impl Socket {
     /// let socket1 = Socket::new();
     /// ```
     pub fn new() -> Self {
-        let tcp_node = Arc::new(TcpNode::new(55_001));
-        let commands = Arc::new(Mutex::new(Vec::new()));
+        let tcp_node = Arc::new(TcpNode::new(53_001));
+        let tcp_clients = Arc::new(Mutex::new(HashMap::new()));
+        let commands = Arc::new(Mutex::new(VecDeque::new()));
 
         Socket {
             name: String::from("default"),
@@ -61,6 +63,7 @@ impl Socket {
             power_consumption: 0.0,
             enabled: false,
             tcp_node,
+            tcp_clients,
             commands
         }
     }
@@ -75,7 +78,8 @@ impl Socket {
     /// ```
     pub fn from(name: &str, description: &str, power_max: f32) -> Self {
         let tcp_node = Arc::new(TcpNode::new(55_001));
-        let commands = Arc::new(Mutex::new(Vec::new()));
+        let tcp_clients = Arc::new(Mutex::new(HashMap::new()));
+        let commands = Arc::new(Mutex::new(VecDeque::new()));
 
         Socket {
             name: String::from(name),
@@ -84,6 +88,7 @@ impl Socket {
             power_consumption: 0.0,
             enabled: false,
             tcp_node,
+            tcp_clients,
             commands
         }
     }
@@ -145,6 +150,7 @@ impl Device for Socket {
 impl TcpCommunication for Socket {
     fn start_receive(&mut self) {
         let tcp_node = self.tcp_node.clone();
+        let tcp_clients = self.tcp_clients.clone();
         let commands = self.commands.clone();
 
         thread::spawn(move || {
@@ -158,10 +164,14 @@ impl TcpCommunication for Socket {
                         println!("SOCKET. Connection is OK {:?}", addr);
 
                         //self.tcp_connection.add_connection("custom", stream).unwrap();
-                        let tcp_commands: Arc<Mutex<Vec<TcpCommand>>> = commands.clone();
+                        let tcp_commands: Arc<Mutex<VecDeque<TcpCommand>>> = commands.clone();
+                        let tcp_clients_cloned: Arc<Mutex<HashMap<String, TcpConnection>>> = tcp_clients.clone();
 
                         thread::spawn(move || {
-                            if handle_function(tcp_connection, tcp_commands).is_err() {
+                            let addr = tcp_connection.peer_addr().unwrap().to_string();
+                            tcp_clients_cloned.lock().unwrap().insert(addr.clone(), tcp_connection).unwrap();
+
+                            if handle_function(addr.clone(), tcp_commands, tcp_clients_cloned).is_err() {
                                 println!("SOCKET. Connection [{}] is closed", addr);
                             }
                         });
@@ -189,48 +199,66 @@ impl TcpCommunication for Socket {
             let msg = format!("SOCKET. try register error. received {:?}", result);
             Err(msg)
         } else {
+            self.save_tcp_client(TcpConnection { stream }, "home").unwrap();
             Ok(())
         }
     }
 
-    fn save_tcp_client(&mut self, connection: TcpStream, name: &str) -> Result<(), String> {
-        Ok(())
+    fn save_tcp_client(&mut self, connection: TcpConnection, name: &str) -> Result<(), String> {
+        if !self.tcp_clients.lock().unwrap().contains_key(name) {
+            self.tcp_clients.lock().unwrap().insert(name.to_string(), connection);
+            Ok(())
+        } else {
+            let message = format!("SOCKET. tcp client with name [{}] already exists", name);
+            Err(message)
+        }
     }
 
-    fn get_tcp_client(&self, name: &str) -> Result<TcpStream, String> {
+    fn get_tcp_client(&self, name: &str) -> Option<&TcpConnection> {
         todo!()
     }
 }
 
-fn handle_function(mut connection: TcpConnection, tcp_commands: Arc<Mutex<Vec<TcpCommand>>>) -> Result<(), String> {
+fn handle_function(addr: String, tcp_commands: Arc<Mutex<VecDeque<TcpCommand>>>, tcp_clients: Arc<Mutex<HashMap<String, TcpConnection>>>) -> Result<(), String> {
+    let mut rounds = 0;
+    let mut clients = tcp_clients.lock();
+    let connection = clients.as_mut().unwrap().get_mut(addr.as_str()).unwrap();
+
     loop {
+        println!("SOCKET. read round {}", rounds);
         let request = connection.receive_request()?;
-        let re = Regex::new(r"\[(\w): \[(\w+)\]\]").unwrap();
+        let re = Regex::new(r"\[(\w+):\s*\[(\w+)\]\]").unwrap();
 
-        for parts in re.captures_iter(request.as_str()) {
-            let command = &parts[1];
-            let args = &parts[2];
-            let tcp_command = TcpCommand::new(command, args, connection.stream.try_clone().unwrap());
+        println!("SOCKET. receive request {}", request);
 
-            println!("SOCKET. receive command {:?}", tcp_command);
+        let caps = re.captures(request.as_str()).unwrap();
+        let command = caps.get(1).unwrap().as_str();
+        let args = caps.get(2).unwrap().as_str();
+        let addr = connection.peer_addr().unwrap().to_string();
+        let tcp_command = TcpCommand::new(command, args, addr.as_str());
 
-            tcp_commands.lock().unwrap().push(tcp_command);
-        }
+        println!("SOCKET. receive command {:?}", tcp_command);
+
+        tcp_commands.lock().unwrap().push_front(tcp_command);
+
+        rounds += 1;
     }
 }
 
 pub struct SocketRequestHandler {
     socket: Arc<Mutex<Socket>>,
+    tcp_clients: Arc<Mutex<HashMap<String, TcpConnection>>>,
     commands_in: Arc<Mutex<VecDeque<TcpCommand>>>,
     commands_out: Arc<Mutex<VecDeque<TcpCommand>>>
 }
 
 impl SocketRequestHandler {
-    pub fn new(home: Arc<Mutex<Socket>>, commands: Arc<Mutex<VecDeque<TcpCommand>>>) -> SocketRequestHandler {
+    pub fn new(home: Arc<Mutex<Socket>>, commands: Arc<Mutex<VecDeque<TcpCommand>>>, tcp_clients: Arc<Mutex<HashMap<String, TcpConnection>>>) -> SocketRequestHandler {
         let commands_out = Arc::new(Mutex::new(VecDeque::new()));
 
         Self {
             socket: home,
+            tcp_clients,
             commands_in: commands,
             commands_out
         }
@@ -245,14 +273,14 @@ impl SocketRequestHandler {
             let mut rounds = 0;
 
             loop {
-                println!("job_analyze_commands. round {}", rounds);
+                println!("SOCKET. job_analyze_commands. round {}", rounds);
 
                 while let Some(command_in) = commands_in_clone.lock().unwrap().pop_back() {
-                    println!("job_analyze_commands. analyze command [{:?}]", command_in);
+                    println!("SOCKET. job_analyze_commands. analyze command [{:?}]", command_in);
 
                     if command_in.command == "info" {
                         let info = socket_clone.lock().unwrap().info();
-                        let tcp_command = TcpCommand::new("device_info", info.as_str(), command_in.sender.try_clone().unwrap());
+                        let tcp_command = TcpCommand::new("device_info", info.as_str(), command_in.sender.as_str());
                         commands_out_clone.lock().unwrap().push_front(tcp_command);
                     }
                 }
@@ -264,17 +292,21 @@ impl SocketRequestHandler {
     }
 
     pub fn job_send_commands_out(&mut self) {
+        let socket_clone = self.socket.clone();
         let commands_out_clone = self.commands_out.clone();
+        let tcp_clients_clone = self.tcp_clients.clone();
 
         thread::spawn(move || {
             let mut rounds = 0;
 
             loop {
-                println!("job_send_commands_out. round {}", rounds);
+                println!("SOCKET. job_send_commands_out. round {}", rounds);
 
                 while let Some(command_out) = commands_out_clone.lock().unwrap().pop_back() {
-                    println!("job_send_commands_out. send out command [{:?}]", command_out);
-                    crate::network::send_string(command_out.to_string(), command_out.sender.try_clone().unwrap()).unwrap();
+                    println!("SOCKET. job_send_commands_out. send out command [{:?}]", command_out);
+                    let mut clients = tcp_clients_clone.lock();
+                    let connection = clients.as_mut().unwrap().get_mut(command_out.sender.as_str()).unwrap();
+                    crate::network::send_string(command_out.to_string(), &mut connection.stream).unwrap();
                 }
 
                 thread::sleep(Duration::from_secs(1));

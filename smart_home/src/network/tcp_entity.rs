@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
 
@@ -91,8 +90,8 @@ trait TcpNodeHandler {
 pub trait TcpCommunication {
     fn start_receive(&mut self);
     fn try_register(&mut self) -> Result<(), String>;
-    fn save_tcp_client(&mut self, connection: TcpStream, name: &str) -> Result<(), String>;
-    fn get_tcp_client(&self, name: &str) -> Result<TcpStream, String>;
+    fn save_tcp_client(&mut self, connection: TcpConnection, name: &str) -> Result<(), String>;
+    fn get_tcp_client(&self, name: &str) -> Option<&TcpConnection>;
 }
 
 pub struct TcpConnection {
