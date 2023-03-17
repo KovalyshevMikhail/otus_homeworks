@@ -7,7 +7,7 @@ use home::place::home::{Home, HomeRequestHandler};
 
 fn main() {
     println!("smart_home. create");
-    let mut arc_home = Arc::new(Mutex::new(Home::new("MyHome")));
+    let arc_home = Arc::new(Mutex::new(Home::new("MyHome")));
     let mut home_request_handler = HomeRequestHandler::new(arc_home.clone(), arc_home.lock().unwrap().commands.clone(), arc_home.lock().unwrap().tcp_clients.clone());
 
     let home_start_receive = arc_home.clone();

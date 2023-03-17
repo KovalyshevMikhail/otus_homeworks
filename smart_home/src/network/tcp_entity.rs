@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
 
@@ -56,30 +55,6 @@ impl TcpNode
 impl Drop for TcpNode {
     fn drop(&mut self) {
         self.is_end = true
-    }
-}
-
-pub struct TcpNodeConnection {
-    clients: HashMap<String, TcpStream>
-}
-
-impl TcpNodeConnection {
-    pub fn new() -> TcpNodeConnection {
-        let clients = HashMap::new();
-
-        Self {
-            clients
-        }
-    }
-
-    pub fn add_connection(&mut self, name: &str, connection: TcpStream) -> Result<(), String> {
-        if self.clients.contains_key(name) {
-            let message = format!("TcpNodeConnection. Client already have [{}]", name);
-            Err(message)
-        } else {
-            self.clients.insert(name.to_string(), connection);
-            Ok(())
-        }
     }
 }
 

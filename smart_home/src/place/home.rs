@@ -8,7 +8,7 @@ use regex::Regex;
 use crate::devices::Device;
 use crate::network::{HOME_PORT, recv_string};
 use crate::network::tcp_command::TcpCommand;
-use crate::network::tcp_entity::{TcpCommunication, TcpConnection, TcpNode, TcpNodeConnection};
+use crate::network::tcp_entity::{TcpCommunication, TcpConnection, TcpNode};
 use crate::services::{ServiceDevices, ServiceSchemaDevices};
 use crate::stores::{StoreDevices, StoreDeviceLinks};
 
@@ -23,7 +23,6 @@ pub struct Home {
     service_devices: ServiceDevices,
     service_schema: ServiceSchemaDevices,
     tcp_node: Arc<TcpNode>,
-    tcp_connection: TcpNodeConnection,
     pub tcp_clients: Arc<Mutex<HashMap<String, TcpConnection>>>,
     pub commands: Arc<Mutex<VecDeque<TcpCommand>>>,
 }
@@ -45,7 +44,6 @@ impl Home {
         let service_schema = ServiceSchemaDevices::new(store_schema);
 
         let tcp_node = Arc::new(TcpNode::new(HOME_PORT));
-        let tcp_connection = TcpNodeConnection::new();
         let tcp_clients = Arc::new(Mutex::new(HashMap::new()));
 
         let commands = Arc::new(Mutex::new(VecDeque::new()));
@@ -55,7 +53,6 @@ impl Home {
             service_devices,
             service_schema,
             tcp_node,
-            tcp_connection,
             tcp_clients,
             commands
         }
@@ -79,7 +76,6 @@ impl Home {
     /// ```
     pub fn from(name: &str, service_devices: ServiceDevices, service_schema: ServiceSchemaDevices) -> Self {
         let tcp_node = Arc::new(TcpNode::new(HOME_PORT));
-        let tcp_connection = TcpNodeConnection::new();
         let tcp_clients = Arc::new(Mutex::new(HashMap::new()));
         let commands = Arc::new(Mutex::new(VecDeque::new()));
 
@@ -88,7 +84,6 @@ impl Home {
             service_devices,
             service_schema,
             tcp_node,
-            tcp_connection,
             tcp_clients,
             commands
         }
